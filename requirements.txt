@@ -1,0 +1,10 @@
+flask
+pandas
+python-dotenv
+pdfplumber
+pdf2image
+pytesseract
+pillow
+python-docx
+openai
+gunicorn

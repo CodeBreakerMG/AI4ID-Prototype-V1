@@ -1,0 +1,334 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>AI Document Extractor Demo</title>
+  <style>
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      margin: 0;
+      padding: 0;
+      background: #f5f5f5;
+    }
+
+    header {
+      background: #800000;
+      color: white;
+      padding: 1rem 2rem;
+    }
+
+    main {
+      padding: 1.5rem 2rem;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 1.6rem;
+    }
+
+    .subheading {
+      margin-top: 0.4rem;
+      font-size: 0.95rem;
+      opacity: 0.9;
+    }
+
+    .upload-section {
+      margin-top: 1rem;
+      display: flex;
+      gap: 1.5rem;
+      flex-wrap: wrap;
+    }
+
+    .dropzone {
+      flex: 1 1 260px;
+      min-height: 150px;
+      border: 2px dashed #999;
+      border-radius: 8px;
+      background: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 1rem;
+      cursor: pointer;
+      transition: border-color 0.2s, background-color 0.2s;
+    }
+
+    .dropzone.dragover {
+      border-color: #800000;
+      background: #fff7f7;
+    }
+
+    .dropzone p {
+      margin: 0;
+      font-size: 0.95rem;
+      color: #555;
+    }
+
+    .file-input-wrapper {
+      margin-top: 0.75rem;
+    }
+
+    button {
+      padding: 0.5rem 1rem;
+      border-radius: 6px;
+      border: none;
+      background: #800000;
+      color: white;
+      font-size: 0.95rem;
+      cursor: pointer;
+    }
+
+    button:disabled {
+      opacity: 0.6;
+      cursor: default;
+    }
+
+    .status {
+      margin-top: 0.5rem;
+      font-size: 0.9rem;
+      color: #333;
+    }
+
+    .table-container {
+      margin-top: 2rem;
+      background: white;
+      border-radius: 8px;
+      padding: 1rem;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+      overflow-x: auto;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.85rem;
+    }
+
+    th, td {
+      border: 1px solid #ddd;
+      padding: 0.4rem 0.5rem;
+      text-align: left;
+    }
+
+    th {
+      background: #f0f0f0;
+    }
+
+    .tag {
+      display: inline-flex;
+      padding: 0.1rem 0.4rem;
+      border-radius: 999px;
+      font-size: 0.75rem;
+      background: #eee;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>AI Document Extractor Demo</h1>
+    <p class="subheading">
+      Upload invoices, quotes, or packing slips for building materials. The backend uses ChatGPT to extract line items into a CSV dataset.
+    </p>
+  </header>
+
+  <main>
+    <section class="upload-section">
+      <div id="dropzone" class="dropzone">
+        <p>
+          Drag and drop a file here<br>
+          <small>Supported: .docx, .pdf, .jpg, .jpeg, .png</small>
+        </p>
+      </div>
+
+      <div>
+        <div class="file-input-wrapper">
+          <input type="file" id="fileInput" />
+        </div>
+        <div style="margin-top: 0.75rem;">
+          <button id="uploadBtn">Upload and extract</button>
+        </div>
+        <p class="status" id="status"></p>
+      </div>
+    </section>
+
+    <section class="table-container">
+      <h2 style="margin-top: 0; font-size: 1.1rem;">Extracted dataset (CSV)</h2>
+      <p style="font-size: 0.85rem; color: #555;">
+        This table is loaded from <code>dataset.csv</code>. Each row is a line item extracted from a document.
+      </p>
+      <table id="dataTable">
+        <thead>
+          <tr id="tableHeaderRow"></tr>
+        </thead>
+        <tbody id="tableBody"></tbody>
+      </table>
+    </section>
+  </main>
+
+<script>
+  const dropzone = document.getElementById("dropzone");
+  const fileInput = document.getElementById("fileInput");
+  const uploadBtn = document.getElementById("uploadBtn");
+  const statusEl = document.getElementById("status");
+  const tableHeaderRow = document.getElementById("tableHeaderRow");
+  const tableBody = document.getElementById("tableBody");
+
+  let selectedFile = null;
+
+  function setStatus(message, isError = false) {
+    statusEl.textContent = message;
+    statusEl.style.color = isError ? "#b00020" : "#333";
+  }
+
+  function setUploadingState(isUploading) {
+    uploadBtn.disabled = isUploading;
+    fileInput.disabled = isUploading;
+    if (isUploading) {
+      setStatus("Uploading and processing document...");
+    }
+  }
+
+  function handleFiles(files) {
+    if (!files || !files.length) return;
+    selectedFile = files[0];
+    setStatus(`Selected file: ${selectedFile.name}`);
+  }
+
+  // Drag and drop behavior
+  dropzone.addEventListener("dragover", (e) => {
+    e.preventDefault();
+    dropzone.classList.add("dragover");
+  });
+
+  dropzone.addEventListener("dragleave", (e) => {
+    e.preventDefault();
+    dropzone.classList.remove("dragover");
+  });
+
+  dropzone.addEventListener("drop", (e) => {
+    e.preventDefault();
+    dropzone.classList.remove("dragover");
+    const files = e.dataTransfer.files;
+    handleFiles(files);
+  });
+
+  // File input change
+  fileInput.addEventListener("change", (e) => {
+    handleFiles(e.target.files);
+  });
+
+  // Upload button
+  uploadBtn.addEventListener("click", async () => {
+    if (!selectedFile) {
+      setStatus("Please select a file first.", true);
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append("file", selectedFile);
+
+    try {
+      setUploadingState(true);
+      const res = await fetch("/upload", {
+        method: "POST",
+        body: formData,
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        console.error("Upload error:", res.status, data);
+        setStatus(data.error || "Error during upload.", true);
+        return;
+      }
+
+      setStatus(`Upload complete. Extracted ${data.rows.length} row(s).`);
+      // Reload table from CSV
+      await loadTableData();
+    } catch (err) {
+      console.error("Upload failed:", err);
+      setStatus("Unexpected error during upload. See console for details.", true);
+    } finally {
+      setUploadingState(false);
+    }
+  });
+
+  async function loadTableData() {
+    tableHeaderRow.innerHTML = "";
+    tableBody.innerHTML = "";
+
+    try {
+      const res = await fetch("/data");
+      const text = await res.text();
+
+      // Try to parse JSON manually so we can log it if it fails
+      let raw;
+      try {
+        raw = JSON.parse(text);
+      } catch (e) {
+        console.error("Response from /data is not valid JSON:", text);
+        setStatus("Server returned invalid data for dataset.", true);
+        return;
+      }
+
+      // Support either array or {rows: [...]}
+      let rows;
+      if (Array.isArray(raw)) {
+        rows = raw;
+      } else if (raw && Array.isArray(raw.rows)) {
+        rows = raw.rows;
+      } else {
+        console.error("Unexpected /data format:", raw);
+        setStatus("Server returned unexpected dataset format.", true);
+        return;
+      }
+
+      if (!rows.length) {
+        setStatus("No data in dataset yet.");
+        return;
+      }
+
+      const columns = Object.keys(rows[0] || {});
+      if (!columns.length) {
+        setStatus("Dataset has no columns to display.");
+        return;
+      }
+
+      // Build header
+      tableHeaderRow.innerHTML = "";
+      for (const col of columns) {
+        const th = document.createElement("th");
+        th.textContent = col;
+        tableHeaderRow.appendChild(th);
+      }
+
+      // Build body
+      tableBody.innerHTML = "";
+      for (const row of rows) {
+        const tr = document.createElement("tr");
+        for (const col of columns) {
+          const td = document.createElement("td");
+          let value = row[col];
+          if (value === null || typeof value === "undefined") {
+            value = "";
+          }
+          td.textContent = value;
+          tr.appendChild(td);
+        }
+        tableBody.appendChild(tr);
+      }
+
+      // If everything worked, clear any previous error
+      setStatus("");
+    } catch (err) {
+      console.error("Error in loadTableData:", err);
+      setStatus("Failed to load dataset from server.", true);
+    }
+  }
+
+  // Initial load
+  loadTableData();
+</script>
+
+</body>
+</html>
