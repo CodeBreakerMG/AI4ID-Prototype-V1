@@ -217,8 +217,11 @@ def upload():
         if tmp_path.exists():
             tmp_path.unlink()
 
+#
+#if __name__ == "__main__":
+ #   # For local testing
+  #  fill_missing_by_commas(CSV_PATH)
+   # app.run(host="0.0.0.0", port=5500, debug=True)
 
 if __name__ == "__main__":
-    # For local testing
-    fill_missing_by_commas(CSV_PATH)
-    app.run(host="0.0.0.0", port=5500, debug=True)
+    app.run(debug=True)
