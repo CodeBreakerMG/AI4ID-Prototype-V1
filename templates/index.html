@@ -154,9 +154,15 @@
 
     <section class="table-container">
       <h2 style="margin-top: 0; font-size: 1.1rem;">Extracted dataset (CSV)</h2>
-      <p style="font-size: 0.85rem; color: #555;">
-        This table is loaded from <code>dataset.csv</code>. Each row is a line item extracted from a document.
+      <p style="display: flex; justify-content: space-between; font-size: 0.85rem; color: #555;">
+        <span>
+          This table is loaded from <code>dataset.csv</code>. Each row is a line item extracted from a document.
+        </span>
+        <span>
+         <button id="downloadBtn">Download Database</button>
+        </span>
       </p>
+      <p>
       <table id="dataTable">
         <thead>
           <tr id="tableHeaderRow"></tr>
@@ -170,11 +176,13 @@
   const dropzone = document.getElementById("dropzone");
   const fileInput = document.getElementById("fileInput");
   const uploadBtn = document.getElementById("uploadBtn");
+  const downloadBtn = document.getElementById("downloadBtn");
   const statusEl = document.getElementById("status");
   const tableHeaderRow = document.getElementById("tableHeaderRow");
   const tableBody = document.getElementById("tableBody");
 
   let selectedFile = null;
+  let downlaodFile = null; //file to donload later.
 
   function setStatus(message, isError = false) {
     statusEl.textContent = message;
@@ -183,6 +191,7 @@
 
   function setUploadingState(isUploading) {
     uploadBtn.disabled = isUploading;
+    downloadBtn.disabled = isUploading;
     fileInput.disabled = isUploading;
     if (isUploading) {
       setStatus("Uploading and processing document...");
@@ -252,6 +261,41 @@
       setUploadingState(false);
     }
   });
+
+  downloadBtn.addEventListener(
+    "click", async () => {
+
+      try {
+        const res = await fetch("/download", {method: "GET"});
+        if (!res.ok){
+          throw new Error("Response was not ok")
+        }
+        const blob = await res.blob();
+               
+
+        const url = window.URL.createObjectURL(blob);
+
+        // 4. Create an invisible anchor tag to trigger the download
+        const a = document.createElement('a');     
+        //    alert('GOOD 1');
+        a.style.display = 'none';
+        a.href = url;
+     //   alert('GOOD 2');
+        // 5. Add to DOM, click it, and remove it
+        document.body.appendChild(a);
+        a.click();
+     //   alert("GOOD 3");
+        // 6. Clean up memory
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+
+    } catch (error) {
+        console.error('Download failed:', error);
+        alert('Something went wrong downloading the file.');
+    }
+
+ 
+    });
 
   async function loadTableData() {
     tableHeaderRow.innerHTML = "";

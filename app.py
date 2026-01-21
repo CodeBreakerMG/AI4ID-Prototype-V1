@@ -1,10 +1,10 @@
 from pathlib import Path
 import os
 import tempfile
-
+import csv
 import pandas as pd
 from pandas.errors import EmptyDataError, ParserError
-from flask import Flask, request, jsonify, render_template
+from flask import Flask, request, jsonify, render_template, send_file
 
 ALLOWED_COLUMNS = [
     "document_type",
@@ -49,8 +49,6 @@ DATA_DIR.mkdir(exist_ok=True)
 config = load_config()
 client = get_openai_client(config["api_key"])
 model_name = config["model"]
-
-import csv
 
 def fill_missing_by_commas(filepath):
     new_lines = []
@@ -173,10 +171,12 @@ def get_data():
         app.logger.exception("Unexpected error in /data: %s", e)
         return jsonify([]), 500
 
+@app.route("/download", methods=["GET"])
+def download():
 
-
-
-
+    return send_file('./data/dataset.csv', as_attachment=True)
+        
+        
 
 
 @app.route("/upload", methods=["POST"])
@@ -217,11 +217,11 @@ def upload():
         if tmp_path.exists():
             tmp_path.unlink()
 
-#
+
 #if __name__ == "__main__":
- #   # For local testing
-  #  fill_missing_by_commas(CSV_PATH)
-   # app.run(host="0.0.0.0", port=5500, debug=True)
+ #    For local testing
+    #fill_missing_by_commas(CSV_PATH)
+    #app.run(host="0.0.0.0", port=5500, debug=True)
 
 if __name__ == "__main__":
     app.run(debug=True)
