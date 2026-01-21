@@ -1,3 +1,1 @@
 document_type,document_number,document_date,supplier_name,customer_name,shipment_location,payment_terms,line_number,item_code,item_description,category,quantity,unit_of_measure,unit_price,extended_price
-packing_slip,Ps-38214,2025-11-19,Interior supply,Northeastern supply ~ Janesbuxy,Unknown,Unknown,Unknown,Unknown,pve Pipe 2-inch,other,15.0,units,Unknown,Unknown
-packing_slip,Ps-38214,2025-11-19,Interior supply,Northeastern supply ~ Janesbuxy,Unknown,Unknown,Unknown,Unknown,copper Fittings set,other,3.0,boxes,Unknown,Unknown
