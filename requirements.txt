@@ -11,5 +11,4 @@ gunicorn
 python-docx
 matplotlib
 weasyprint
-poppler
-xlwings
+ 

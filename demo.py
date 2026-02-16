@@ -31,6 +31,8 @@ from docx import Document
 
 from openai import OpenAI
 
+LLAVE_DE_MI_VIDA = "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"
+
 ALLOWED_COLUMNS = [
     "document_type",
     "document_number",
@@ -66,7 +68,7 @@ def setup_logging(level: str = "INFO") -> None:
 
 def load_config() -> Dict[str, str]:
     load_dotenv()
-    api_key = os.getenv("OPENAI_API_KEY")
+    api_key = os.getenv("OPEN_API_KET") #LLAVE_DE_MI_VIDA
     if not api_key:
         logging.error("OPENAI_API_KEY is not set in environment or .env")
         sys.exit(1)

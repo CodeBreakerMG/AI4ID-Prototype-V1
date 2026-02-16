@@ -1,0 +1,22 @@
+# Secrets
+
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+ 
+# Virtual env
+
+
+# Uploads / runtime files
+uploads/
+data/
+
+# OS files
+.DS_Store
+*.env
+.env
+
+
