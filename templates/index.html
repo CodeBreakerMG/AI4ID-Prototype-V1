@@ -137,7 +137,7 @@
       <div id="dropzone" class="dropzone">
         <p>
           Drag and drop a file here<br>
-          <small>Supported: .docx, .pdf, .jpg, .jpeg, .png</small>
+          <small>Supported: .docx, .pdf, .jpg, .jpeg, .png, .xlsx (Excel File), .csv</small>
         </p>
       </div>
 
@@ -153,15 +153,29 @@
     </section>
 
     <section class="table-container">
-      <h2 style="margin-top: 0; font-size: 1.1rem;">Extracted dataset (CSV)</h2>
-      <p style="display: flex; justify-content: space-between; font-size: 0.85rem; color: #555;">
-        <span>
-          This table is loaded from <code>dataset.csv</code>. Each row is a line item extracted from a document.
-        </span>
-        <span>
-         <button id="downloadBtn">Download Database</button>
-        </span>
-      </p>
+      <div style="display: flex; justify-content: space-between">
+      <div  style="display: block">
+        <h2 style="margin-top: 0; font-size: 1.1rem;">Extracted dataset (CSV)</h2>
+        <p style="display: flex; justify-content: space-between; font-size: 0.85rem; color: #555;">
+          <span>
+            This table is loaded from your browser's saved session database. Each row is a line item extracted from a document.
+          </span>
+        </p>
+      </div>
+       <div style="display: block">  
+          <button id="resetBtn" style="margin-bottom: 5%; background-color: #FFF; border-color: #800000; color: #800000; border: 2px solid #800000;">Reset Database</button>
+          <button id="downloadBtn" style="margin-bottom: 5% ">Download Database</button>
+          <br />
+          <label for="downloadSel" style="font-size: 0.05rem; color: #555;"></label>File Format</label>
+          <select id="downloadSel" name="downloadSel">
+            <option value="xlsx">Excel File</option>
+            <option value="docx">Word File</option>
+            <option value="jpeg">Image (JPEG)</option>
+            <option value="pdf">PDF</option>
+          </select>
+        </div>
+   
+      </div>
       <p>
       <table id="dataTable">
         <thead>
@@ -177,6 +191,8 @@
   const fileInput = document.getElementById("fileInput");
   const uploadBtn = document.getElementById("uploadBtn");
   const downloadBtn = document.getElementById("downloadBtn");
+  const resetBtn = document.getElementById("resetBtn");
+  const downloadSel = document.getElementById("downloadSel");
   const statusEl = document.getElementById("status");
   const tableHeaderRow = document.getElementById("tableHeaderRow");
   const tableBody = document.getElementById("tableBody");
@@ -192,6 +208,7 @@
   function setUploadingState(isUploading) {
     uploadBtn.disabled = isUploading;
     downloadBtn.disabled = isUploading;
+    resetBtn.disabled = isUploading;
     fileInput.disabled = isUploading;
     if (isUploading) {
       setStatus("Uploading and processing document...");
@@ -262,22 +279,47 @@
     }
   });
 
-  downloadBtn.addEventListener(
-    "click", async () => {
+  resetBtn.addEventListener("click", async () => {
+    try{
+      setUploadingState(true);
+      const res = await fetch("/reset", {
+        method: "POST"
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        console.error("Reset error:", res.status, data);
+        setStatus(data.error || "Error reset .", true);
+        return;
+      }
+      
+      setStatus(`Reset complete. No more data.`);
+      // Reload table from CSV
+      await loadTableData();
+    } catch (err) {
+      console.error("Reset failed:", err);
+      setStatus("Unexpected error during Reset. See console for details.", true);
+    } finally {
+      setUploadingState(false);
+    }
+  });
+
+  downloadBtn.addEventListener("click", async () => {
 
       try {
-        const res = await fetch("/download", {method: "GET"});
+        const downloadSelValue = downloadSel.value
+        const getURLString = "/download?type=" + downloadSelValue
+        const res = await fetch(getURLString, {method: "GET"});
+         
         if (!res.ok){
           throw new Error("Response was not ok")
         }
+
         const blob = await res.blob();
-               
-
         const url = window.URL.createObjectURL(blob);
-
         // 4. Create an invisible anchor tag to trigger the download
         const a = document.createElement('a');     
-        //    alert('GOOD 1');
+
         a.style.display = 'none';
         a.href = url;
      //   alert('GOOD 2');

@@ -8,3 +8,8 @@ pillow
 python-docx
 openai
 gunicorn
+python-docx
+matplotlib
+weasyprint
+poppler
+xlwings

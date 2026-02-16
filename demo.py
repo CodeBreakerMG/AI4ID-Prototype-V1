@@ -51,7 +51,7 @@ ALLOWED_COLUMNS = [
 
 # ------------- Config and logging -------------
 
-SUPPORTED_SUFFIXES = {".docx", ".pdf", ".jpg", ".jpeg", ".png"}
+SUPPORTED_SUFFIXES = {".docx", ".pdf", ".jpg", ".jpeg", ".png", ".csv", ".xlsx"}
 MAX_CHARS_FOR_LLM = 15000  # simple safeguard
 
 
@@ -159,6 +159,49 @@ def extract_text(path: str) -> str:
 
     raise ValueError(f"Unsupported file type: {suffix}")
 
+def read_tabular_file_to_rows(path: str) -> list[dict]:
+    suffix = Path(path).suffix.lower()
+
+    if suffix == ".csv":
+        df = pd.read_csv(path)
+    elif suffix == ".xlsx":
+        df = pd.read_excel(path, sheet_name=0, engine="openpyxl")
+    else:
+        raise ValueError(f"Not a tabular file: {suffix}")
+
+    # Normalize to your allowed schema
+    for col in ALLOWED_COLUMNS:
+        if col not in df.columns:
+            df[col] = "Not Defined"
+
+    df = df[ALLOWED_COLUMNS].fillna("Not Defined")
+
+    return df.to_dict(orient="records")
+
+ 
+
+def read_tabular(path: str) -> pd.DataFrame:
+    suf = Path(path).suffix.lower()
+    if suf == ".csv":
+        return pd.read_csv(path)
+    if suf == ".xlsx":
+        return pd.read_excel(path, sheet_name=0, engine="openpyxl")
+    raise ValueError(f"Unsupported tabular file: {suf}")
+
+def df_to_compact_table_text(df: pd.DataFrame, max_rows: int = 60, max_cols: int = 20) -> str:
+    # Keep it bounded
+    df2 = df.copy()
+    if df2.shape[1] > max_cols:
+        df2 = df2.iloc[:, :max_cols]
+    if len(df2) > max_rows:
+        df2 = df2.head(max_rows)
+
+    # Make sure column names are strings
+    df2.columns = [str(c) for c in df2.columns]
+
+    # Convert to a plain-text table the LLM can read
+    # (markdown table style)
+    return df2.to_markdown(index=False)
 
 # ------------- LLM call -------------
 
@@ -215,7 +258,22 @@ def fill_empty(obj, replacement="N/A"):
         return obj
 
 
+def extract_structured_data_from_tabular_with_llm(client, model: str, df: pd.DataFrame) -> dict:
+    table_text = df_to_compact_table_text(df)
 
+    prompt = f"""
+    You are given a spreadsheet excerpt. It may be an invoice/quote/packing slip or a tabular document.
+
+    Spreadsheet excerpt (markdown table):
+    {table_text}
+
+    Return ONLY valid JSON in this exact schema:
+    {SYSTEM_PROMPT.split("Given the text of a document, return a single JSON object with this structure:")[1].strip()}
+    """.strip()
+
+    # Reuse whatever OpenAI call you already do inside extract_structured_data_with_llm,
+    # but pass `prompt` as the user content.
+    return extract_structured_data_with_llm(client, model, prompt)
 
 def extract_structured_data_with_llm(
     client: OpenAI,
