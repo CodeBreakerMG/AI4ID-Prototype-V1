@@ -56,7 +56,7 @@ SESSION_DATA_DIR = DATA_DIR / "sessions"
 SESSION_DATA_DIR.mkdir(exist_ok=True)
 
 DB_ID_COOKIE = "db_id"
-PERSIST_DAYS = 15  # change to 365 if you want ~1 year persistence
+PERSIST_DAYS = 7  # change to 365 if you want ~1 year persistence
 
 def get_db_csv_path(db_id: str) -> Path:
     # A separate CSV per browser

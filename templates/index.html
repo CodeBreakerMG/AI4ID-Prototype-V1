@@ -238,6 +238,11 @@
     handleFiles(files);
   });
 
+  dropzone.addEventListener("click", () => {
+    fileInput.click();   // Open file dialog
+  });
+
+
   // File input change
   fileInput.addEventListener("change", (e) => {
     handleFiles(e.target.files);

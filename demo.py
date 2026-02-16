@@ -68,7 +68,7 @@ def setup_logging(level: str = "INFO") -> None:
 
 def load_config() -> Dict[str, str]:
     load_dotenv()
-    api_key = os.getenv("OPEN_API_KET") #LLAVE_DE_MI_VIDA
+    api_key = os.getenv("OPENAI_API_KEY") #LLAVE_DE_MI_VIDA
     if not api_key:
         logging.error("OPENAI_API_KEY is not set in environment or .env")
         sys.exit(1)
